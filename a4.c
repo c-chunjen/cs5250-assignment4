@@ -47,13 +47,8 @@ ssize_t fourMegaBytes_read(struct file *filep, char *buf, size_t count, loff_t *
 	printk(KERN_INFO "count field is %lu.\n", count);
 	printk(KERN_INFO "f_pos is %lu.\n", *f_pos);
 
-	if(*f_pos == 0) {
-		copy_to_user(buf, fourMegaBytes_data, 1);
-		*f_pos = *f_pos+1;
-		return 1;
-	} else if(*f_pos > 0) {
-		return 0;
-	}
+	copy_to_user(buf, fourMegaBytes_data, count);
+	return 1;
 }
 
 ssize_t fourMegaBytes_write(struct file *filep, const char *buf, size_t count, loff_t *f_pos)
@@ -65,15 +60,11 @@ ssize_t fourMegaBytes_write(struct file *filep, const char *buf, size_t count, l
 	printk(KERN_INFO "count field is %lu.\n", count);
 	printk(KERN_INFO "f_pos is %lu.\n", *f_pos);
 	
-	char tmp[DEVICE_SIZE];
-	
 	if(DEVICE_SIZE >= count) {
 		copy_from_user(fourMegaBytes_data, buf, count);
-		*f_pos = *f_pos+1;
 		return count;
-	} else if(count > DEVICE_SIZE) {
+	} else {
 		copy_from_user(fourMegaBytes_data, buf, DEVICE_SIZE);
-		*f_pos = *f_pos+1;
 		return -ENOSPC;
 	}
 }
