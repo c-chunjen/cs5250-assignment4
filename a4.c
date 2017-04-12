@@ -47,8 +47,9 @@ ssize_t fourMegaBytes_read(struct file *filep, char *buf, size_t count, loff_t *
 	printk(KERN_INFO "count field is %lu.\n", count);
 	printk(KERN_INFO "f_pos is %lu.\n", *f_pos);
 
-	copy_to_user(buf, fourMegaBytes_data, count);
-	return count;
+	copy_to_user(buf, fourMegaBytes_data+*f_pos, 1);
+	*f_pos = *f_pos+1;
+	return 1;
 }
 
 ssize_t fourMegaBytes_write(struct file *filep, const char *buf, size_t count, loff_t *f_pos)
