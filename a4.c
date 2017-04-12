@@ -66,15 +66,15 @@ ssize_t fourMegaBytes_write(struct file *filep, const char *buf, size_t count, l
 	printk(KERN_INFO "f_pos is %lu.\n", *f_pos);
 	
 	if(*f_pos >= 0) {
-		char tmp[count];
-		copy_from_user(tmp, buf, count);
-		*(fourMegaBytes_data+*f_pos) = *tmp;
-	} else if(*f_pos > 0) {
+		char tmp[DEVICE_SIZE];
+		copy_from_user(tmp, buf, DEVICE_SIZE);
+		fourMegaBytes_data = &tmp;
+	} else if(*f_pos > DEVICE_SIZE) {
 		return -ENOSPC;
 	}
 
 	*f_pos = *f_pos+1;	
-	return count;
+	return DEVICE_SIZE;
 }
 
 static int fourMegaBytes_init(void)
