@@ -68,13 +68,11 @@ ssize_t fourMegaBytes_write(struct file *filep, const char *buf, size_t count, l
 	char tmp[DEVICE_SIZE];
 	
 	if(DEVICE_SIZE >= count) {
-		copy_from_user(tmp, buf, count);
-		fourMegaBytes_data = &tmp;
+		copy_from_user(fourMegaBytes_data, buf, count);
 		*f_pos = *f_pos+1;
 		return count;
 	} else if(count > DEVICE_SIZE) {
-		copy_from_user(tmp, buf, DEVICE_SIZE);
-		fourMegaBytes_data = &tmp;
+		copy_from_user(fourMegaBytes_data, buf, DEVICE_SIZE);
 		*f_pos = *f_pos+1;
 		return -ENOSPC;
 	}
