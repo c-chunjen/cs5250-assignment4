@@ -14,6 +14,7 @@
 /* forward declaration */
 int fourMegaBytes_open(struct inode *inode, struct file *filep);
 int fourMegaBytes_release(struct inode *inode, struct file *filep);
+loff_t fourMegaBytes_llseek(struct file *filep, loff_t off, int whence);
 ssize_t fourMegaBytes_read(struct file *filep, char *buf, size_t count, loff_t *f_pos);
 ssize_t fourMegaBytes_write(struct file *filep, const char *buf, size_t count, loff_t *f_pos);
 static void fourMegaBytes_exit(void);
@@ -23,7 +24,8 @@ struct file_operations fourMegaBytes_fops = {
 	read: fourMegaBytes_read,
 	write: fourMegaBytes_write,
 	open: fourMegaBytes_open,
-	release: fourMegaBytes_release
+	release: fourMegaBytes_release,
+	llseek: fourMegaBytes_llseek
 };
 
 char *fourMegaBytes_data = NULL;
@@ -36,6 +38,37 @@ int fourMegaBytes_open(struct inode *inode, struct file *filep)
 int fourMegaBytes_release(struct inode *inode, struct file *filep)
 {
 	return 0; // always successful
+}
+
+loff_t fourMegaBytes_llseek(struct file *filep, loff_t off, int whence)
+{
+	printk(KERN_INFO "Running fourMegaBytes_llseek:\n");
+	printk(KERN_INFO "off field is %lu.\n", off);
+	printk(KERN_INFO "whence field is %lu.\n", whence);
+
+	loff_t n_pos;
+
+	switch(whence) {
+		case 0: /* SEEK_SET */
+			n_pos = off;
+			break;
+		
+		case 1: /* SEEK_CUR */
+			n_pos = filep->f_pos+off;
+			break;
+
+		case 2: /* SEEK_END */
+			n_pos = DEVICE_SIZE+off;
+			break;
+
+		default: /* can't happen */
+			return -EINVAL;
+	}
+	
+	if (n_pos < 0) return -EINVAL;
+	
+	filep->f_pos = n_pos;
+	return n_pos;
 }
 
 ssize_t fourMegaBytes_read(struct file *filep, char *buf, size_t count, loff_t *f_pos)
