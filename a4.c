@@ -39,7 +39,7 @@ struct file_operations fourMegaBytes_fops = {
 };
 
 char *fourMegaBytes_data = NULL;
-int write_count = 0;
+int write_count = DEVICE_SIZE;
 char dev_msg[SCULL_MESSAGE_SIZE];
 
 int fourMegaBytes_open(struct inode *inode, struct file *filep)
@@ -146,6 +146,8 @@ loff_t fourMegaBytes_llseek(struct file *filep, loff_t off, int whence)
 	
 	if (n_pos < 0) return -EINVAL;
 	
+	printk(KERN_INFO "n_pos field is %lu.\n", n_pos);
+	
 	filep->f_pos = n_pos;
 	return n_pos;
 }
@@ -160,6 +162,9 @@ ssize_t fourMegaBytes_read(struct file *filep, char *buf, size_t count, loff_t *
 	printk(KERN_INFO "f_pos is %lu.\n", *f_pos);
 	
 	printk(KERN_INFO "write_count is %lu.\n", write_count);
+	
+	if(*f_pos > DEVICE_SIZE)
+		return 0;
 	
 	if(*f_pos <= write_count) {
 		if(*f_pos+count > write_count) {
@@ -183,9 +188,17 @@ ssize_t fourMegaBytes_write(struct file *filep, const char *buf, size_t count, l
 	printk(KERN_INFO "f_pos is %lu.\n", *f_pos);
 	
 	if((*f_pos)+count < DEVICE_SIZE) {
-		write_count = count-(*f_pos);
+		if((*f_pos) == 0) {
+			write_count = count;
+		} else {
+			write_count = write_count+count;
+		}
 	} else {
-		write_count = DEVICE_SIZE-(*f_pos);
+		if((*f_pos) == 0) {
+			write_count = DEVICE_SIZE-(*f_pos);
+		} else {
+			write_count = DEVICE_SIZE;
+		}
 		count = DEVICE_SIZE-(*f_pos);
 		/*
 		*Should return -ENOSPC for out of space usage
@@ -195,6 +208,8 @@ ssize_t fourMegaBytes_write(struct file *filep, const char *buf, size_t count, l
 	
 	if(copy_from_user(fourMegaBytes_data+*f_pos, buf, count))
 		return -EFAULT;
+	
+	printk(KERN_INFO "write_count is %lu.\n", write_count);
 	
 	*f_pos = *f_pos+count;
 	return count;
