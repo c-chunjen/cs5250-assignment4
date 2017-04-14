@@ -13,10 +13,11 @@
 #define DEVICE_SIZE 4*1024*1024
 #define SCULL_MESSAGE_SIZE 256
 #define SCULL_IOC_MAGIC 'k'
-#define SCULL_IOC_MAXNR 3
+#define SCULL_IOC_MAXNR 4
 #define SCULL_HELLO _IO(SCULL_IOC_MAGIC, 1)
 #define SCULL_IOW _IOW(SCULL_IOC_MAGIC, 2, unsigned long)
 #define SCULL_IOR _IOR(SCULL_IOC_MAGIC, 3, unsigned long)
+#define SCULL_IOWR _IOWR(SCULL_IOC_MAGIC, 4, unsigned long)
 
 /* forward declaration */
 int fourMegaBytes_open(struct inode *inode, struct file *filep);
@@ -56,7 +57,7 @@ long ioctl_example(struct file *filp, unsigned int cmd, unsigned long arg)
 	printk(KERN_INFO "cmd field is %lu.\n", cmd);
 	printk(KERN_INFO "arg field is %lu.\n", arg);
 	
-	int err = 0, tmp;
+	int err = 0, tmp[SCULL_MESSAGE_SIZE];
 	int retval = 0;
 	
 	/*
@@ -87,13 +88,28 @@ long ioctl_example(struct file *filp, unsigned int cmd, unsigned long arg)
 			printk(KERN_WARNING "From SCULL_IOW:\n");
 			if(copy_from_user(dev_msg, (char *)arg, SCULL_MESSAGE_SIZE))
 				retval = -EFAULT;
-			printk(KERN_WARNING "Set dev_msg from user_msg: %s\n", dev_msg);
+			printk(KERN_WARNING "Set dev_msg from user_msg: dev_msg=\"%s\"\n", dev_msg);
 			break;
 		case SCULL_IOR:
 			printk(KERN_WARNING "From SCULL_IOR:\n");
 			if(copy_to_user((char *)arg, dev_msg, SCULL_MESSAGE_SIZE))
 				retval = -EFAULT;
-			printk(KERN_WARNING "Copy dev_msg to user_msg: %s\n", dev_msg);
+			printk(KERN_WARNING "Copy dev_msg to user_msg: dev_msg=\"%s\"\n", dev_msg);
+			break;
+		case SCULL_IOWR:
+			printk(KERN_WARNING "From SCULL_IOWR:\n");
+			
+			if(copy_from_user(tmp, (char *)arg, SCULL_MESSAGE_SIZE))
+				retval = -EFAULT;
+			printk(KERN_WARNING "Set tmp from user_msg: tmp=\"%s\"\n", tmp);
+			
+			if(copy_to_user((char *)arg, dev_msg, SCULL_MESSAGE_SIZE))
+				retval = -EFAULT;
+			printk(KERN_WARNING "Copy dev_msg(old) to user_msg: dev_msg=\"%s\"\n", dev_msg);
+			
+			memcpy(dev_msg,tmp,SCULL_MESSAGE_SIZE);
+			printk(KERN_WARNING "Copy tmp to dev_msg(new): dev_msg=\"%s\"\n", dev_msg);
+			
 			break;
 		default: /* redundant, as cmd was checked against MAXNR */
 			return -ENOTTY;
