@@ -11,8 +11,12 @@
 #define MAJOR_NUMBER 61
 
 #define DEVICE_SIZE 4*1024*1024
-#define SCULL_IOC_MAGIC  'k'
+#define SCULL_MESSAGE_SIZE 256
+#define SCULL_IOC_MAGIC 'k'
+#define SCULL_IOC_MAXNR 1
 #define SCULL_HELLO _IO(SCULL_IOC_MAGIC, 1)
+#define SCULL_IOW _IOW(SCULL_IOC_MAGIC, 2, unsigned long)
+#define SCULL_IOR _IOR(SCULL_IOC_MAGIC, 3, unsigned long)
 
 /* forward declaration */
 int fourMegaBytes_open(struct inode *inode, struct file *filep);
@@ -34,6 +38,7 @@ struct file_operations fourMegaBytes_fops = {
 };
 
 char *fourMegaBytes_data = NULL;
+char dev_msg[SCULL_MESSAGE_SIZE];
 
 int fourMegaBytes_open(struct inode *inode, struct file *filep)
 {
@@ -75,7 +80,20 @@ long ioctl_example(struct file *filp, unsigned int cmd, unsigned long arg)
 	
 	switch(cmd) {
 		case SCULL_HELLO:
+			printk(KERN_WARNING "From SCULL_HELLO:\n");
 			printk(KERN_WARNING "hello\n");
+			break;
+		case SCULL_IOW:
+			printk(KERN_WARNING "From SCULL_IOW:\n");
+			if (copy_from_user(dev_msg, (char *)arg, SCULL_MESSAGE_SIZE))
+				retval = -EFAULT;
+			printk(KERN_WARNING "Set dev_msg from user_msg: %s\n", dev_msg);
+			break;
+		case SCULL_IOR:
+			printk(KERN_WARNING "From SCULL_IOR:\n");
+			if (copy_to_user((char *)arg, dev_msg, SCULL_MESSAGE_SIZE))
+				retval = -EFAULT;
+			printk(KERN_WARNING "Copy dev_msg to user_msg: %s\n", dev_msg);
 			break;
 		default: /* redundant, as cmd was checked against MAXNR */
 			return -ENOTTY;
