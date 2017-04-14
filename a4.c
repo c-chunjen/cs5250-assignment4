@@ -39,6 +39,7 @@ struct file_operations fourMegaBytes_fops = {
 };
 
 char *fourMegaBytes_data = NULL;
+int write_count = 0;
 char dev_msg[SCULL_MESSAGE_SIZE];
 
 int fourMegaBytes_open(struct inode *inode, struct file *filep)
@@ -158,16 +159,18 @@ ssize_t fourMegaBytes_read(struct file *filep, char *buf, size_t count, loff_t *
 	printk(KERN_INFO "count field is %lu.\n", count);
 	printk(KERN_INFO "f_pos is %lu.\n", *f_pos);
 	
-	if((*f_pos)+count < DEVICE_SIZE) {
-		copy_to_user(buf, fourMegaBytes_data+*f_pos, count);
-		*f_pos = *f_pos+count;
-		return count;
-	} else {
-		count = DEVICE_SIZE-*f_pos;
-		copy_to_user(buf, fourMegaBytes_data+*f_pos, count);
-		*f_pos = *f_pos+count;
-		return count;
+	printk(KERN_INFO "write_count is %lu.\n", write_count);
+	
+	if(*f_pos <= write_count) {
+		if(*f_pos+count > write_count) {
+			count = write_count-*f_pos;
+		}
+		if(copy_to_user(buf, fourMegaBytes_data+*f_pos, count))
+			return -EFAULT;
 	}
+	
+	*f_pos = *f_pos+count;
+	return count;
 }
 
 ssize_t fourMegaBytes_write(struct file *filep, const char *buf, size_t count, loff_t *f_pos)
@@ -179,13 +182,22 @@ ssize_t fourMegaBytes_write(struct file *filep, const char *buf, size_t count, l
 	printk(KERN_INFO "count field is %lu.\n", count);
 	printk(KERN_INFO "f_pos is %lu.\n", *f_pos);
 	
-	if(DEVICE_SIZE >= count) {
-		copy_from_user(fourMegaBytes_data, buf, count);
-		return count;
+	if((*f_pos)+count < DEVICE_SIZE) {
+		write_count = count-(*f_pos);
 	} else {
-		copy_from_user(fourMegaBytes_data, buf, DEVICE_SIZE);
-		return -ENOSPC;
+		write_count = DEVICE_SIZE-(*f_pos);
+		count = DEVICE_SIZE-(*f_pos);
+		/*
+		*Should return -ENOSPC for out of space usage
+		*/
+		//return -ENOSPC;
 	}
+	
+	if(copy_from_user(fourMegaBytes_data+*f_pos, buf, count))
+		return -EFAULT;
+	
+	*f_pos = *f_pos+count;
+	return count;
 }
 
 static int fourMegaBytes_init(void)
@@ -212,7 +224,7 @@ static int fourMegaBytes_init(void)
 	}
 
 	// initialize the value to be X
-	*fourMegaBytes_data = 'X';
+	memset(fourMegaBytes_data, 'X', DEVICE_SIZE);  
 	printk(KERN_ALERT "This is a fourMegaBytes device module\n");
 	return 0;
 }
