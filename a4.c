@@ -13,7 +13,7 @@
 #define DEVICE_SIZE 4*1024*1024
 #define SCULL_MESSAGE_SIZE 256
 #define SCULL_IOC_MAGIC 'k'
-#define SCULL_IOC_MAXNR 1
+#define SCULL_IOC_MAXNR 3
 #define SCULL_HELLO _IO(SCULL_IOC_MAGIC, 1)
 #define SCULL_IOW _IOW(SCULL_IOC_MAGIC, 2, unsigned long)
 #define SCULL_IOR _IOR(SCULL_IOC_MAGIC, 3, unsigned long)
@@ -63,8 +63,8 @@ long ioctl_example(struct file *filp, unsigned int cmd, unsigned long arg)
 	* extract the type and number bitfields, and don't decode
 	* wrong cmds: return ENOTTY (inappropriate ioctl) before access_ok()
 	*/
-	if (_IOC_TYPE(cmd) != SCULL_IOC_MAGIC) return -ENOTTY;
-	if (_IOC_NR(cmd) > SCULL_IOC_MAXNR) return -ENOTTY;
+	if(_IOC_TYPE(cmd) != SCULL_IOC_MAGIC) return -ENOTTY;
+	if(_IOC_NR(cmd) > SCULL_IOC_MAXNR) return -ENOTTY;
 
 	/*
 	* the direction is a bitmask, and VERIFY_WRITE catches R/W
@@ -72,9 +72,9 @@ long ioctl_example(struct file *filp, unsigned int cmd, unsigned long arg)
 	* access_ok is kernel-oriented, so the concept of "read" and
 	* "write" is reversed
 	*/
-	if (_IOC_DIR(cmd) & _IOC_READ)
+	if(_IOC_DIR(cmd) & _IOC_READ)
 		err = !access_ok(VERIFY_WRITE, (void __user *)arg, _IOC_SIZE(cmd));
-	else if (_IOC_DIR(cmd) & _IOC_WRITE)
+	else if(_IOC_DIR(cmd) & _IOC_WRITE)
 		err = !access_ok(VERIFY_READ, (void __user *)arg, _IOC_SIZE(cmd));
 	if (err) return -EFAULT;
 	
@@ -85,13 +85,13 @@ long ioctl_example(struct file *filp, unsigned int cmd, unsigned long arg)
 			break;
 		case SCULL_IOW:
 			printk(KERN_WARNING "From SCULL_IOW:\n");
-			if (copy_from_user(dev_msg, (char *)arg, SCULL_MESSAGE_SIZE))
+			if(copy_from_user(dev_msg, (char *)arg, SCULL_MESSAGE_SIZE))
 				retval = -EFAULT;
 			printk(KERN_WARNING "Set dev_msg from user_msg: %s\n", dev_msg);
 			break;
 		case SCULL_IOR:
 			printk(KERN_WARNING "From SCULL_IOR:\n");
-			if (copy_to_user((char *)arg, dev_msg, SCULL_MESSAGE_SIZE))
+			if(copy_to_user((char *)arg, dev_msg, SCULL_MESSAGE_SIZE))
 				retval = -EFAULT;
 			printk(KERN_WARNING "Copy dev_msg to user_msg: %s\n", dev_msg);
 			break;
